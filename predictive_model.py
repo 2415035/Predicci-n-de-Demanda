@@ -14,69 +14,20 @@ if os.path.exists(file_path):
 else:
     print(f"El archivo '{file_path}' no existe.")
 
-# Cargar datasets
-dataset_1 = pd.read_csv("Amazon Sale Report.csv")  # Primer dataset
-dataset_2 = pd.read_csv("DHL_Facilities.csv")  # Segundo dataset
+# Leer el archivo CSV, eliminando comillas y manejando columnas con espacios
+dataset = pd.read_csv("Amazon Sale Report.csv", quotechar='"')
 
-# --- Preprocesamiento del Dataset 1 ---
-dataset_1['Date'] = pd.to_datetime(dataset_1['Date'])  # Convertir fechas
-dataset_1['Month'] = dataset_1['Date'].dt.month  # Extraer mes
-dataset_1['Day'] = dataset_1['Date'].dt.day  # Extraer día
-X1 = dataset_1[['Month', 'Day', 'Qty']]  # Variables independientes
-y1 = dataset_1['Amount']  # Variable dependiente
+# Eliminar espacios extra en los nombres de las columnas
+dataset.columns = dataset.columns.str.strip()
 
-# --- Preprocesamiento del Dataset 2 ---
-dataset_2.rename(columns={'CITY': 'City'}, inplace=True)  # Renombrar columnas
-X2 = dataset_2[['LATITUDE', 'LONGITUDE', 'CENSUS_CODE']]  # Variables independientes
-y2 = dataset_2['LOCATION_TY']  # Variable dependiente (suponiendo que es una cantidad)
+# Eliminar la columna innecesaria "Unnamed: 22"
+dataset = dataset.drop(columns=['Unnamed: 22'])
 
-# --- Entrenamiento del Modelo para Dataset 1 ---
-X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.2, random_state=42)
-model1 = RandomForestRegressor(n_estimators=100, random_state=42)
-model1.fit(X1_train, y1_train)
-y1_pred = model1.predict(X1_test)
+# Convertir la columna 'Date' al formato de fecha estándar (YYYY-MM-DD)
+dataset['Date'] = pd.to_datetime(dataset['Date'], format='%m-%d-%y')
 
-# Métricas para Dataset 1
-mae1 = mean_absolute_error(y1_test, y1_pred)
-rmse1 = np.sqrt(mean_squared_error(y1_test, y1_pred))
-r2_1 = r2_score(y1_test, y1_pred)
+# Revisar los primeros 5 registros del dataframe
+print(dataset.head())
 
-# --- Entrenamiento del Modelo para Dataset 2 ---
-X2_train, X2_test, y2_train, y2_test = train_test_split(X2, y2, test_size=0.2, random_state=42)
-model2 = RandomForestRegressor(n_estimators=100, random_state=42)
-model2.fit(X2_train, y2_train)
-y2_pred = model2.predict(X2_test)
-
-# Métricas para Dataset 2
-mae2 = mean_absolute_error(y2_test, y2_pred)
-rmse2 = np.sqrt(mean_squared_error(y2_test, y2_pred))
-r2_2 = r2_score(y2_test, y2_pred)
-
-# --- Comparación de Resultados ---
-print("Resultados para Dataset 1:")
-print(f"MAE: {mae1}, RMSE: {rmse1}, R²: {r2_1}")
-
-print("Resultados para Dataset 2:")
-print(f"MAE: {mae2}, RMSE: {rmse2}, R²: {r2_2}")
-
-# Visualización Comparativa
-labels = ['Dataset 1', 'Dataset 2']
-mae_values = [mae1, mae2]
-rmse_values = [rmse1, rmse2]
-r2_values = [r2_1, r2_2]
-
-x = np.arange(len(labels))  # Etiquetas
-width = 0.25  # Ancho de las barras
-
-fig, ax = plt.subplots(figsize=(10, 6))
-ax.bar(x - width, mae_values, width, label='MAE')
-ax.bar(x, rmse_values, width, label='RMSE')
-ax.bar(x + width, r2_values, width, label='R²')
-
-ax.set_xlabel('Dataset')
-ax.set_title('Comparación de Métricas entre Datasets')
-ax.set_xticks(x)
-ax.set_xticklabels(labels)
-ax.legend()
-
-plt.show()
+# Guardar el archivo corregido, si es necesario
+dataset.to_csv("Amazon_Sale_Report_Corregido.csv", index=False)
