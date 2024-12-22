@@ -12,7 +12,7 @@ dataset_2_file = st.file_uploader("Subir el segundo dataset", type=["csv"])
 # Procesar el primer archivo si se carga
 if dataset_1_file is not None:
     try:
-        dataset_1 = pd.read_csv(dataset_1_file, sep=",", on_bad_lines='skip')  # Manejar errores de líneas
+        dataset_1 = pd.read_csv(dataset_1_file, sep=";", on_bad_lines='skip')  # Manejar errores de líneas
         st.write("Primer dataset cargado con éxito:")
         st.write("Dimensiones del dataset:", dataset_1.shape)
         st.write("Primeras filas del dataset:")
