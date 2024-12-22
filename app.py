@@ -12,11 +12,15 @@ dataset_1_file = st.file_uploader("Subir el primer dataset", type=["csv"])
 dataset_2_file = st.file_uploader("Subir el segundo dataset", type=["csv"])
 
 if dataset_1_file and dataset_2_file:
-    # Cargar los datasets con manejo de delimitadores
+    # Cargar los datasets
     dataset_1 = pd.read_csv(dataset_1_file, delimiter=';')  # Cambiar por el delimitador correcto
     dataset_2 = pd.read_csv(dataset_2_file, delimiter=';')  # Cambiar por el delimitador correcto
 
-    # Verificación de la existencia de la columna 'Qty'
+    # Verificar las columnas de los datasets
+    st.write("Columnas del primer dataset:", dataset_1.columns)
+    st.write("Columnas del segundo dataset:", dataset_2.columns)
+
+    # Verificar que 'Qty' esté presente en ambos datasets
     if 'Qty' not in dataset_1.columns or 'Qty' not in dataset_2.columns:
         st.error("La columna 'Qty' no está presente en uno de los datasets.")
     else:
@@ -27,11 +31,11 @@ if dataset_1_file and dataset_2_file:
         dataset_2 = pd.get_dummies(dataset_2, drop_first=True)
 
         # Preparación del primer dataset (definir X e y)
-        X1 = dataset_1.drop(columns=['Qty', 'Order ID', 'Date', 'Unnamed: 22'], errors='ignore')
+        X1 = dataset_1.drop(columns=['Qty', 'Order ID', 'Date', 'Unnamed: 22'])
         y1 = dataset_1['Qty']  # Variable objetivo
 
         # Preparación del segundo dataset (definir X e y)
-        X2 = dataset_2.drop(columns=['OBJECTID', 'FEATURE_ID', 'NAME', 'ADDRESS', 'ADDRESS2'], errors='ignore')
+        X2 = dataset_2.drop(columns=['OBJECTID', 'FEATURE_ID', 'NAME', 'ADDRESS', 'ADDRESS2'])
         y2 = dataset_2['Qty']  # Variable objetivo (asegurarse que esta columna exista)
 
         # Dividir los datasets en entrenamiento y prueba
@@ -62,20 +66,27 @@ if dataset_1_file and dataset_2_file:
         mae_2 = mean_absolute_error(y2_test, y2_pred)
         mse_2 = mean_squared_error(y2_test, y2_pred)
 
-        # Mostrar los resultados en Streamlit
+        # Mostrar los resultados en Streamlit para el primer dataset
         st.subheader("Resultados para el Dataset 1:")
         st.write(f"R²: {r2_1}")
         st.write(f"MAE: {mae_1}")
         st.write(f"MSE: {mse_1}")
 
+        # Mostrar los resultados en Streamlit para el segundo dataset
         st.subheader("Resultados para el Dataset 2:")
         st.write(f"R²: {r2_2}")
         st.write(f"MAE: {mae_2}")
         st.write(f"MSE: {mse_2}")
 
-        if r2_1 >= 0.8 and r2_2 >= 0.8:
-            st.success("Ambos modelos alcanzaron un R² mayor al 80%. El modelo es confiable.")
+        # Verificar si los modelos alcanzaron el rendimiento esperado
+        if r2_1 >= 0.8:
+            st.success("El primer modelo alcanzó un R² mayor al 80%. El modelo es confiable.")
         else:
-            st.warning("Uno o ambos modelos no alcanzaron el rendimiento objetivo del 80%. Puede que sea necesario ajustar el modelo.")
+            st.warning("El primer modelo no alcanzó el rendimiento objetivo del 80%. Puede que sea necesario ajustar el modelo.")
+
+        if r2_2 >= 0.8:
+            st.success("El segundo modelo alcanzó un R² mayor al 80%. El modelo es confiable.")
+        else:
+            st.warning("El segundo modelo no alcanzó el rendimiento objetivo del 80%. Puede que sea necesario ajustar el modelo.")
 else:
     st.write("Por favor, sube ambos archivos CSV para realizar la predicción.")
