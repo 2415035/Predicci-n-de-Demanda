@@ -1,99 +1,97 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Configuración de la aplicación
-st.title("Modelo Predictivo para Dos Datasets")
-st.write("Sube los datasets y el modelo predecirá la cantidad de envíos en cada caso.")
+st.title("Estimación del Número de Pedidos en Días Festivos")
+st.write("Sube tu archivo CSV y obtén una estimación del número de pedidos en días festivos.")
 
-# Cargar archivos CSV
-dataset_1_file = st.file_uploader("Subir el primer dataset (con columna 'PCS')", type=["csv"])
-dataset_2_file = st.file_uploader("Subir el segundo dataset (con columna 'Qty')", type=["csv"])
+# Subida del archivo CSV
+uploaded_file = st.file_uploader("Sube tu archivo CSV", type=["csv"])
 
-if dataset_1_file and dataset_2_file:
-    # Cargar datasets
-    dataset_1 = pd.read_csv(dataset_1_file)
-    dataset_2 = pd.read_csv(dataset_2_file)
+if uploaded_file:
+    # Cargar datos
+    data = pd.read_csv(uploaded_file)
 
-    # Mostrar vistas previas de los datos
-    st.subheader("Vista previa del primer dataset:")
-    st.write(dataset_1.head())
+    # Mostrar una vista previa del archivo
+    st.write("Vista previa del archivo:")
+    st.dataframe(data.head())
 
-    st.subheader("Vista previa del segundo dataset:")
-    st.write(dataset_2.head())
+    # Preprocesamiento
+    st.write("Procesando datos...")
+    data['Order_Date'] = pd.to_datetime(data['Order_Date'])
+    data['Year'] = data['Order_Date'].dt.year
+    data['Month'] = data['Order_Date'].dt.month
+    data['Day'] = data['Order_Date'].dt.day
+    data['Day_of_Week'] = data['Order_Date'].dt.dayofweek
+    data['Is_Weekend'] = data['Day_of_Week'].isin([5, 6]).astype(int)
 
-    # Preprocesamiento para el primer dataset
-    st.subheader("Preprocesamiento del Primer Dataset")
-    if 'PCS' in dataset_1.columns:
-        # Manejar valores faltantes solo en columnas numéricas
-        num_cols_1 = dataset_1.select_dtypes(include=['number']).columns
-        dataset_1[num_cols_1] = dataset_1[num_cols_1].fillna(dataset_1[num_cols_1].mean())
+    # Rellenar valores nulos
+    data['Weatherconditions'].fillna("Desconocido", inplace=True)
+    data['Road_traffic_density'].fillna("Desconocido", inplace=True)
+    data['Festival'].fillna("No", inplace=True)
+    data['City'].fillna("Desconocido", inplace=True)
 
-        # Preparar X e y
-        X1 = dataset_1.drop(columns=['PCS', 'DATE', 'GROSS AMT'], errors='ignore')
-        y1 = dataset_1['PCS']
-        X1 = pd.get_dummies(X1, drop_first=True)
+    # Codificar variables categóricas
+    label_encoders = {}
+    categorical_columns = ['Weatherconditions', 'Road_traffic_density', 'Festival', 'City']
 
-        # Validar si quedan valores faltantes
-        if X1.isnull().sum().sum() > 0 or y1.isnull().sum() > 0:
-            st.error("El primer dataset aún contiene valores faltantes después del preprocesamiento.")
-        else:
-            # Dividir en conjuntos de entrenamiento y prueba
-            X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.2, random_state=42)
+    for col in categorical_columns:
+        le = LabelEncoder()
+        data[col] = le.fit_transform(data[col])
+        label_encoders[col] = le
 
-            # Entrenar modelo
-            model_1 = RandomForestRegressor(n_estimators=100, random_state=42)
-            model_1.fit(X1_train, y1_train)
+    # Crear variable objetivo
+    data['Order_Count'] = data.groupby(['Order_Date'])['Delivery_person_ID'].transform('count')
 
-            # Realizar predicciones y evaluar
-            y1_pred = model_1.predict(X1_test)
-            r2_1 = r2_score(y1_test, y1_pred)
-            mae_1 = mean_absolute_error(y1_test, y1_pred)
-            mse_1 = mean_squared_error(y1_test, y1_pred)
+    # Definir X e y
+    features = ['Year', 'Month', 'Day', 'Day_of_Week', 'Is_Weekend',
+                'Weatherconditions', 'Road_traffic_density', 'Festival', 'City']
+    X = data[features]
+    y = data['Order_Count']
 
-            st.subheader("Resultados del Primer Dataset:")
-            st.write(f"R²: {r2_1}")
-            st.write(f"MAE: {mae_1}")
-            st.write(f"MSE: {mse_1}")
-    else:
-        st.error("La columna 'PCS' no está presente en el primer dataset.")
+    # Dividir datos
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Preprocesamiento para el segundo dataset
-    st.subheader("Preprocesamiento del Segundo Dataset")
-    if 'Qty' in dataset_2.columns:
-        # Manejar valores faltantes solo en columnas numéricas
-        num_cols_2 = dataset_2.select_dtypes(include=['number']).columns
-        dataset_2[num_cols_2] = dataset_2[num_cols_2].fillna(dataset_2[num_cols_2].mean())
+    # Entrenar modelo
+    model = RandomForestRegressor(random_state=42, n_estimators=100)
+    model.fit(X_train, y_train)
 
-        # Preparar X e y
-        X2 = dataset_2.drop(columns=['Qty', 'NAME', 'ADDRESS', 'ADDRESS2'], errors='ignore')
-        y2 = dataset_2['Qty']
-        X2 = pd.get_dummies(X2, drop_first=True)
+    # Evaluar modelo
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
 
-        # Validar si quedan valores faltantes
-        if X2.isnull().sum().sum() > 0 or y2.isnull().sum() > 0:
-            st.error("El segundo dataset aún contiene valores faltantes después del preprocesamiento.")
-        else:
-            # Dividir en conjuntos de entrenamiento y prueba
-            X2_train, X2_test, y2_train, y2_test = train_test_split(X2, y2, test_size=0.2, random_state=42)
+    st.write(f"MSE: {mse}")
+    st.write(f"R2 Score: {r2}")
 
-            # Entrenar modelo
-            model_2 = RandomForestRegressor(n_estimators=100, random_state=42)
-            model_2.fit(X2_train, y2_train)
+    # Predicción personalizada
+    st.write("Introduce datos para estimar los pedidos:")
+    year = st.number_input("Año", min_value=2000, max_value=2100, value=2024)
+    month = st.number_input("Mes", min_value=1, max_value=12, value=12)
+    day = st.number_input("Día", min_value=1, max_value=31, value=25)
+    day_of_week = st.number_input("Día de la semana (0=Lunes, 6=Domingo)", min_value=0, max_value=6, value=2)
+    is_weekend = st.selectbox("¿Es fin de semana?", [0, 1])
+    weather = st.selectbox("Condición climática", label_encoders['Weatherconditions'].classes_)
+    traffic = st.selectbox("Densidad de tráfico", label_encoders['Road_traffic_density'].classes_)
+    festival = st.selectbox("¿Es día festivo?", label_encoders['Festival'].classes_)
+    city = st.selectbox("Ciudad", label_encoders['City'].classes_)
 
-            # Realizar predicciones y evaluar
-            y2_pred = model_2.predict(X2_test)
-            r2_2 = r2_score(y2_test, y2_pred)
-            mae_2 = mean_absolute_error(y2_test, y2_pred)
-            mse_2 = mean_squared_error(y2_test, y2_pred)
+    # Preparar datos para predicción
+    example_data = pd.DataFrame({
+        'Year': [year],
+        'Month': [month],
+        'Day': [day],
+        'Day_of_Week': [day_of_week],
+        'Is_Weekend': [is_weekend],
+        'Weatherconditions': [label_encoders['Weatherconditions'].transform([weather])[0]],
+        'Road_traffic_density': [label_encoders['Road_traffic_density'].transform([traffic])[0]],
+        'Festival': [label_encoders['Festival'].transform([festival])[0]],
+        'City': [label_encoders['City'].transform([city])[0]]
+    })
 
-            st.subheader("Resultados del Segundo Dataset:")
-            st.write(f"R²: {r2_2}")
-            st.write(f"MAE: {mae_2}")
-            st.write(f"MSE: {mse_2}")
-    else:
-        st.error("La columna 'Qty' no está presente en el segundo dataset.")
-else:
-    st.write("Por favor, sube ambos archivos CSV para continuar.")
+    prediction = model.predict(example_data)
+    st.write(f"Pedidos estimados: {prediction[0]:.2f}")
