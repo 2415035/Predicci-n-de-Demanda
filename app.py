@@ -64,9 +64,11 @@ if uploaded_file:
     y_pred = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
+    r2_percentage = r2 * 100  # Convertir R2 a porcentaje
 
     st.write(f"MSE: {mse}")
     st.write(f"R2 Score: {r2}")
+    st.write(f"Porcentaje de acertividad del modelo: {r2_percentage:.2f}%")
 
     # Predicción personalizada
     st.write("Introduce datos para estimar los pedidos:")
