@@ -4,81 +4,86 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-# Subir los archivos CSV
-st.title('Modelo Predictivo de Demanda de Envíos')
-st.write("Cargar los datasets para analizar la demanda de envíos.")
+# Configuración de la aplicación
+st.title('Modelo Predictivo de Cantidad de Envíos')
+st.write("Sube los datasets para analizar la cantidad de envíos.")
 
-dataset_1_file = st.file_uploader("Subir el primer dataset", type=["csv"])
-dataset_2_file = st.file_uploader("Subir el segundo dataset", type=["csv"])
+# Subir los archivos CSV
+dataset_1_file = st.file_uploader("Sube el primer dataset", type=["csv"])
+dataset_2_file = st.file_uploader("Sube el segundo dataset", type=["csv"])
 
 if dataset_1_file and dataset_2_file:
     # Cargar los datasets
     dataset_1 = pd.read_csv(dataset_1_file)
     dataset_2 = pd.read_csv(dataset_2_file)
 
-    # Preprocesamiento para el primer dataset (convertir columnas categóricas)
-    dataset_1 = pd.get_dummies(dataset_1, drop_first=True)
+    # Mostrar las primeras filas de ambos datasets para verificar su estructura
+    st.subheader("Vista previa del primer dataset:")
+    st.write(dataset_1.head())
 
-    # Preprocesamiento para el segundo dataset (convertir columnas categóricas)
-    dataset_2 = pd.get_dummies(dataset_2, drop_first=True)
+    st.subheader("Vista previa del segundo dataset:")
+    st.write(dataset_2.head())
 
-    # Preparación del primer dataset (definir X e y)
-    columnas_a_eliminar_1 = ['Order ID', 'Date', 'Status', 'Fulfilment', 'Sales Channel', 
-                             'ship-service-level', 'Category', 'Size', 'Courier Status', 
-                             'currency', 'ship-city', 'ship-state', 'ship-postal-code', 'ship-country', 
-                             'B2B', 'fulfilled-by', 'New', 'PendingS']
-    columnas_a_eliminar_1 = [col for col in columnas_a_eliminar_1 if col in dataset_1.columns]
-    X1 = dataset_1.drop(columns=columnas_a_eliminar_1)
-    y1 = dataset_1['Qty']  # Variable objetivo
+    # Preprocesamiento para el primer dataset
+    if 'PCS' in dataset_1.columns:
+        X1 = dataset_1.drop(columns=['PCS', 'DATE', 'GROSS AMT'], errors='ignore')  # Eliminar columnas no predictoras
+        y1 = dataset_1['PCS']  # Variable objetivo
+        X1 = pd.get_dummies(X1, drop_first=True)  # Convertir categóricas en variables dummy
 
-    # Preparación del segundo dataset (definir X e y)
-    columnas_a_eliminar_2 = ['OBJECTID', 'FEATURE_ID', 'NAME', 'ADDRESS', 'ADDRESS2']
-    columnas_a_eliminar_2 = [col for col in columnas_a_eliminar_2 if col in dataset_2.columns]
-    X2 = dataset_2.drop(columns=columnas_a_eliminar_2)
-    y2 = dataset_2['Qty']  # Variable objetivo (asegurarse que esta columna exista)
+        # Dividir los datos en entrenamiento y prueba
+        X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.2, random_state=42)
 
-    # Dividir los datasets en entrenamiento y prueba
-    X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.2, random_state=42)
-    X2_train, X2_test, y2_train, y2_test = train_test_split(X2, y2, test_size=0.2, random_state=42)
+        # Entrenar el modelo para el primer dataset
+        model_1 = RandomForestRegressor(n_estimators=100, random_state=42)
+        model_1.fit(X1_train, y1_train)
 
-    # Entrenar el modelo en el primer dataset
-    model_1 = RandomForestRegressor(n_estimators=100, random_state=42)
-    model_1.fit(X1_train, y1_train)
+        # Realizar predicciones y evaluar el modelo
+        y1_pred = model_1.predict(X1_test)
+        r2_1 = r2_score(y1_test, y1_pred)
+        mae_1 = mean_absolute_error(y1_test, y1_pred)
+        mse_1 = mean_squared_error(y1_test, y1_pred)
 
-    # Realizar predicciones para el primer dataset
-    y1_pred = model_1.predict(X1_test)
-
-    # Evaluar el rendimiento del primer modelo
-    r2_1 = r2_score(y1_test, y1_pred)
-    mae_1 = mean_absolute_error(y1_test, y1_pred)
-    mse_1 = mean_squared_error(y1_test, y1_pred)
-
-    # Entrenar el modelo en el segundo dataset
-    model_2 = RandomForestRegressor(n_estimators=100, random_state=42)
-    model_2.fit(X2_train, y2_train)
-
-    # Realizar predicciones para el segundo dataset
-    y2_pred = model_2.predict(X2_test)
-
-    # Evaluar el rendimiento del segundo modelo
-    r2_2 = r2_score(y2_test, y2_pred)
-    mae_2 = mean_absolute_error(y2_test, y2_pred)
-    mse_2 = mean_squared_error(y2_test, y2_pred)
-
-    # Mostrar los resultados en Streamlit
-    st.subheader("Resultados para el Dataset 1:")
-    st.write(f"R²: {r2_1}")
-    st.write(f"MAE: {mae_1}")
-    st.write(f"MSE: {mse_1}")
-
-    st.subheader("Resultados para el Dataset 2:")
-    st.write(f"R²: {r2_2}")
-    st.write(f"MAE: {mae_2}")
-    st.write(f"MSE: {mse_2}")
-
-    if r2_1 >= 0.8 and r2_2 >= 0.8:
-        st.success("Ambos modelos alcanzaron un R² mayor al 80%. El modelo es confiable.")
+        # Mostrar resultados para el primer dataset
+        st.subheader("Resultados para el Primer Dataset (Predicción de PCS):")
+        st.write(f"R²: {r2_1}")
+        st.write(f"MAE: {mae_1}")
+        st.write(f"MSE: {mse_1}")
     else:
-        st.warning("Uno o ambos modelos no alcanzaron el rendimiento objetivo del 80%. Puede que sea necesario ajustar el modelo.")
+        st.error("La columna 'PCS' no está presente en el primer dataset.")
+
+    # Preprocesamiento para el segundo dataset
+    if 'Qty' in dataset_2.columns:
+        X2 = dataset_2.drop(columns=['Qty', 'NAME', 'ADDRESS', 'ADDRESS2'], errors='ignore')  # Eliminar columnas no predictoras
+        y2 = dataset_2['Qty']  # Variable objetivo
+        X2 = pd.get_dummies(X2, drop_first=True)  # Convertir categóricas en variables dummy
+
+        # Dividir los datos en entrenamiento y prueba
+        X2_train, X2_test, y2_train, y2_test = train_test_split(X2, y2, test_size=0.2, random_state=42)
+
+        # Entrenar el modelo para el segundo dataset
+        model_2 = RandomForestRegressor(n_estimators=100, random_state=42)
+        model_2.fit(X2_train, y2_train)
+
+        # Realizar predicciones y evaluar el modelo
+        y2_pred = model_2.predict(X2_test)
+        r2_2 = r2_score(y2_test, y2_pred)
+        mae_2 = mean_absolute_error(y2_test, y2_pred)
+        mse_2 = mean_squared_error(y2_test, y2_pred)
+
+        # Mostrar resultados para el segundo dataset
+        st.subheader("Resultados para el Segundo Dataset (Predicción de Qty):")
+        st.write(f"R²: {r2_2}")
+        st.write(f"MAE: {mae_2}")
+        st.write(f"MSE: {mse_2}")
+    else:
+        st.error("La columna 'Qty' no está presente en el segundo dataset.")
+
+    # Evaluar la consistencia de los modelos
+    if 'PCS' in dataset_1.columns and 'Qty' in dataset_2.columns:
+        st.subheader("Comparativa entre modelos:")
+        if r2_1 >= 0.8 and r2_2 >= 0.8:
+            st.success("Ambos modelos alcanzaron un R² mayor al 80%. Los modelos son consistentes.")
+        else:
+            st.warning("Uno o ambos modelos no alcanzaron el rendimiento objetivo del 80%. Puede que sea necesario ajustar los modelos.")
 else:
     st.write("Por favor, sube ambos archivos CSV para realizar la predicción.")
