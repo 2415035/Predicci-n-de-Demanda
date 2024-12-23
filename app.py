@@ -27,8 +27,9 @@ if dataset_1_file and dataset_2_file:
     # Preprocesamiento para el primer dataset
     st.subheader("Preprocesamiento del Primer Dataset")
     if 'PCS' in dataset_1.columns:
-        # Manejar valores faltantes
-        dataset_1.fillna(dataset_1.mean(), inplace=True)
+        # Manejar valores faltantes solo en columnas numéricas
+        num_cols_1 = dataset_1.select_dtypes(include=['number']).columns
+        dataset_1[num_cols_1] = dataset_1[num_cols_1].fillna(dataset_1[num_cols_1].mean())
 
         # Preparar X e y
         X1 = dataset_1.drop(columns=['PCS', 'DATE', 'GROSS AMT'], errors='ignore')
@@ -62,8 +63,9 @@ if dataset_1_file and dataset_2_file:
     # Preprocesamiento para el segundo dataset
     st.subheader("Preprocesamiento del Segundo Dataset")
     if 'Qty' in dataset_2.columns:
-        # Manejar valores faltantes
-        dataset_2.fillna(dataset_2.mean(), inplace=True)
+        # Manejar valores faltantes solo en columnas numéricas
+        num_cols_2 = dataset_2.select_dtypes(include=['number']).columns
+        dataset_2[num_cols_2] = dataset_2[num_cols_2].fillna(dataset_2[num_cols_2].mean())
 
         # Preparar X e y
         X2 = dataset_2.drop(columns=['Qty', 'NAME', 'ADDRESS', 'ADDRESS2'], errors='ignore')
