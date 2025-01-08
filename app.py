@@ -4,6 +4,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Configuración de la aplicación
 st.title("Estimación del Número de Pedidos en Días Festivos")
@@ -97,3 +99,9 @@ if uploaded_file:
 
     prediction = model.predict(example_data)
     st.write(f"Pedidos estimados: {prediction[0]:.2f}")
+
+    # Ejemplo: gráfico de barras para pedidos por mes
+    st.write("Distribución de pedidos por mes:")
+    fig, ax = plt.subplots()
+    sns.barplot(x=data['Month'], y=data['Order_Count'], ax=ax)
+    st.pyplot(fig)
