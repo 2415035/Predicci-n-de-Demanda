@@ -101,11 +101,11 @@ if uploaded_file:
     st.write(f"Pedidos estimados: {prediction[0]:.2f}")
 
     if st.button("Descargar predicciones"):
-    predicciones = pd.DataFrame({
-        'Fecha': X_test['Year'].astype(str) + "-" + X_test['Month'].astype(str) + "-" + X_test['Day'].astype(str),
-        'Pedidos Reales': y_test,
-        'Pedidos Predichos': y_pred
-    })
+        predicciones = pd.DataFrame({
+            'Fecha': X_test['Year'].astype(str) + "-" + X_test['Month'].astype(str) + "-" + X_test['Day'].astype(str),
+            'Pedidos Reales': y_test,
+            'Pedidos Predichos': y_pred
+        })
     predicciones.to_csv("predicciones.csv", index=False)
     st.download_button("Descargar archivo CSV", data=predicciones.to_csv(index=False), file_name="predicciones.csv", mime="text/csv")
 
