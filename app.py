@@ -7,22 +7,18 @@ from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Configuración de la aplicación
-st.title("Estimación del Número de Pedidos en Días Festivos")
-st.write("Sube tu archivo CSV y obtén una estimación del número de pedidos en días festivos.")
+st.title("Estimación del Número de Pedidos en Días Festivos y otros valores Independientes")
+st.write("Subir archivo CSV y obtén una estimación del número de pedidos en días festivos y demas datos.")
 
-# Subida del archivo CSV
-uploaded_file = st.file_uploader("Sube tu archivo CSV", type=["csv"])
+uploaded_file = st.file_uploader("Subir archivo CSV", type=["csv"])
 
 if uploaded_file:
-    # Cargar datos
+    
     data = pd.read_csv(uploaded_file)
 
-    # Mostrar una vista previa del archivo
     st.write("Vista previa del archivo:")
     st.dataframe(data.head())
 
-    # Preprocesamiento
     st.write("Procesando datos...")
     data['Order_Date'] = pd.to_datetime(data['Order_Date'])
     data['Year'] = data['Order_Date'].dt.year
@@ -31,13 +27,11 @@ if uploaded_file:
     data['Day_of_Week'] = data['Order_Date'].dt.dayofweek
     data['Is_Weekend'] = data['Day_of_Week'].isin([5, 6]).astype(int)
 
-    # Rellenar valores nulos
     data['Weatherconditions'].fillna("Desconocido", inplace=True)
     data['Road_traffic_density'].fillna("Desconocido", inplace=True)
     data['Festival'].fillna("No", inplace=True)
     data['City'].fillna("Desconocido", inplace=True)
 
-    # Codificar variables categóricas
     label_encoders = {}
     categorical_columns = ['Weatherconditions', 'Road_traffic_density', 'Festival', 'City']
 
@@ -46,23 +40,18 @@ if uploaded_file:
         data[col] = le.fit_transform(data[col])
         label_encoders[col] = le
 
-    # Crear variable objetivo
     data['Order_Count'] = data.groupby(['Order_Date'])['Delivery_person_ID'].transform('count')
 
-    # Definir X e y
     features = ['Year', 'Month', 'Day', 'Day_of_Week', 'Is_Weekend',
                 'Weatherconditions', 'Road_traffic_density', 'Festival', 'City']
     X = data[features]
     y = data['Order_Count']
 
-    # Dividir datos
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Entrenar modelo
     model = RandomForestRegressor(random_state=42, n_estimators=100)
     model.fit(X_train, y_train)
 
-    # Evaluar modelo
     y_pred = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
@@ -72,7 +61,6 @@ if uploaded_file:
     st.write(f"R2 Score: {r2}")
     st.write(f"Porcentaje de acertividad del modelo: {r2_percentage:.2f}%")
 
-    # Predicción personalizada
     st.write("Introduce datos para estimar los pedidos:")
     year = st.number_input("Año", min_value=2000, max_value=2100, value=2024)
     month = st.number_input("Mes", min_value=1, max_value=12, value=12)
@@ -84,7 +72,6 @@ if uploaded_file:
     festival = st.selectbox("¿Es día festivo?", label_encoders['Festival'].classes_)
     city = st.selectbox("Ciudad", label_encoders['City'].classes_)
 
-    # Preparar datos para predicción
     example_data = pd.DataFrame({
         'Year': [year],
         'Month': [month],
@@ -119,25 +106,20 @@ if uploaded_file:
     else:
         st.write("Asegúrate de haber realizado las predicciones antes de intentar descargarlas.")
 
-    # Ejemplo: gráfico de barras para pedidos por mes
     st.write("Distribución de pedidos por mes:")
     fig, ax = plt.subplots()
     sns.barplot(x=data['Month'], y=data['Order_Count'], ax=ax)
     st.pyplot(fig)
 
-    # Gráfico de Predicciones Reales vs Predichas
     st.write("Gráfico de Predicciones Reales vs Predichas:")
 
-    # Crear el gráfico
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.scatter(y_test, y_pred, color='blue', alpha=0.5)
     ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linewidth=2)  # Línea de referencia
 
-    # Etiquetas y título
     ax.set_xlabel("Pedidos Reales")
     ax.set_ylabel("Pedidos Predichos")
     ax.set_title("Predicciones Reales vs Predichas")
 
-    # Mostrar el gráfico
     st.pyplot(fig)
 
