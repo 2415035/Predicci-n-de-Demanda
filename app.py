@@ -124,3 +124,20 @@ if uploaded_file:
     fig, ax = plt.subplots()
     sns.barplot(x=data['Month'], y=data['Order_Count'], ax=ax)
     st.pyplot(fig)
+
+    # Gráfico de Predicciones Reales vs Predichas
+    st.write("Gráfico de Predicciones Reales vs Predichas:")
+
+    # Crear el gráfico
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.scatter(y_test, y_pred, color='blue', alpha=0.5)
+    ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linewidth=2)  # Línea de referencia
+
+    # Etiquetas y título
+    ax.set_xlabel("Pedidos Reales")
+    ax.set_ylabel("Pedidos Predichos")
+    ax.set_title("Predicciones Reales vs Predichas")
+
+    # Mostrar el gráfico
+    st.pyplot(fig)
+
