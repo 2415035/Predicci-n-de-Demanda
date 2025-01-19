@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, roc_curve, roc_auc_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -75,33 +75,6 @@ if uploaded_file:
     st.write(cv_rmse)
     st.write(f"Promedio RMSE (CV): {cv_rmse.mean():.2f}")
 
-    # Conversión a problema de clasificación para curva ROC
-    threshold = 50  # Umbral para alta/baja demanda
-    data['High_Demand'] = (data['Order_Count'] > threshold).astype(int)
-
-    y_class = data['High_Demand']
-    X_train_class, X_test_class, y_train_class, y_test_class = train_test_split(X, y_class, test_size=0.2, random_state=42)
-
-    classifier = RandomForestClassifier(random_state=42, n_estimators=100)
-    classifier.fit(X_train_class, y_train_class)
-
-    # Predicciones de probabilidad para curva ROC
-    y_probs = classifier.predict_proba(X_test_class)[:, 1]
-
-    fpr, tpr, thresholds = roc_curve(y_test_class, y_probs)
-    roc_auc = roc_auc_score(y_test_class, y_probs)
-
-    # Gráfico de la curva ROC
-    st.write("Curva ROC para el modelo de clasificación:")
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(fpr, tpr, label=f'Random Forest (AUC = {roc_auc:.2f})', color='blue')
-    ax.plot([0, 1], [0, 1], color='red', linestyle='--')  # Línea de referencia
-    ax.set_xlabel('Tasa de Falsos Positivos (FPR)')
-    ax.set_ylabel('Tasa de Verdaderos Positivos (TPR)')
-    ax.set_title('Curva ROC')
-    ax.legend(loc='lower right')
-    st.pyplot(fig)
-
     st.write("Introduce datos para estimar los pedidos:")
     year = st.number_input("Año", min_value=2000, max_value=2100, value=2024)
     month = st.number_input("Mes", min_value=1, max_value=12, value=12)
@@ -141,5 +114,4 @@ if uploaded_file:
     ax.set_ylabel("Pedidos Predichos")
     ax.set_title("Predicciones Reales vs Predichas")
     st.pyplot(fig)
-
 
