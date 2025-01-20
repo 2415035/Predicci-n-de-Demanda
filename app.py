@@ -1,19 +1,19 @@
 import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from math import sqrt
+from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 st.title("Estimación del Número de Pedidos en Días Festivos y otros valores Independientes")
-st.write("Subir archivo CSV y obtén una estimación del número de pedidos en días festivos y demás datos.")
+st.write("Subir archivo CSV y obtén una estimación del número de pedidos en días festivos y demas datos.")
 
 uploaded_file = st.file_uploader("Subir archivo CSV", type=["csv"])
 
 if uploaded_file:
+    
     data = pd.read_csv(uploaded_file)
 
     st.write("Vista previa del archivo:")
@@ -49,32 +49,17 @@ if uploaded_file:
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Modelo de regresión
     model = RandomForestRegressor(random_state=42, n_estimators=100)
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
-
-    # Métricas de regresión
     mse = mean_squared_error(y_test, y_pred)
-    rmse = sqrt(mean_squared_error(y_test, y_pred))
-    mae = mean_absolute_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
-    r2_percentage = r2 * 100
+    r2_percentage = r2 * 100 
 
-    st.write(f"MSE: {mse:.2f}")
-    st.write(f"RMSE: {rmse:.2f}")
-    st.write(f"MAE: {mae:.2f}")
-    st.write(f"R2 Score: {r2:.2f}")
+    st.write(f"MSE: {mse}")
+    st.write(f"R2 Score: {r2}")
     st.write(f"Porcentaje de acertividad del modelo: {r2_percentage:.2f}%")
-
-    # Validación cruzada
-    cv_scores = cross_val_score(model, X, y, cv=5, scoring='neg_mean_squared_error')
-    cv_rmse = (-cv_scores) ** 0.5
-
-    st.write("Resultados de la validación cruzada (RMSE):")
-    st.write(cv_rmse)
-    st.write(f"Promedio RMSE (CV): {cv_rmse.mean():.2f}")
 
     st.write("Introduce datos para estimar los pedidos:")
     year = st.number_input("Año", min_value=2000, max_value=2100, value=2024)
@@ -102,18 +87,39 @@ if uploaded_file:
     prediction = model.predict(example_data)
     st.write(f"Pedidos estimados: {prediction[0]:.2f}")
 
+    if 'y_pred' in locals() and 'y_test' in locals() and 'X_test' in locals():
+        if st.button("Descargar predicciones"):
+            predicciones = pd.DataFrame({
+                'Fecha': X_test['Year'].astype(str) + "-" + X_test['Month'].astype(str) + "-" + X_test['Day'].astype(str),
+                'Pedidos Reales': y_test,
+                'Pedidos Predichos': y_pred
+            })
+
+            # Descargar el archivo CSV
+            st.download_button(
+                "Descargar archivo CSV",
+                data=predicciones.to_csv(index=False),
+                file_name="predicciones.csv",
+                mime="text/csv"
+            )
+
+    else:
+        st.write("Asegúrate de haber realizado las predicciones antes de intentar descargarlas.")
+
     st.write("Distribución de pedidos por mes:")
     fig, ax = plt.subplots()
     sns.barplot(x=data['Month'], y=data['Order_Count'], ax=ax)
     st.pyplot(fig)
 
     st.write("Gráfico de Predicciones Reales vs Predichas:")
+
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.scatter(y_test, y_pred, color='blue', alpha=0.5)
     ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linewidth=2)  # Línea de referencia
+
     ax.set_xlabel("Pedidos Reales")
     ax.set_ylabel("Pedidos Predichos")
     ax.set_title("Predicciones Reales vs Predichas")
-    st.pyplot(fig)
 
+    st.pyplot(fig)
 
